@@ -1,0 +1,11 @@
+psutil
+opencv-python
+Pillow 
+customtkinter
+pygame
+ffpyplayer
+py-cpuinfo
+PyQt5
+PyQtWebEngine
+tkcalendar
+keyboard

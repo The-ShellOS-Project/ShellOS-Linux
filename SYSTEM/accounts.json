@@ -1,0 +1,12 @@
+[
+    {
+        "name": "default",
+        "password": "250514",
+        "hidden": true
+    },
+    {
+        "name": "guy",
+        "password": "123",
+        "hidden": false
+    }
+]
