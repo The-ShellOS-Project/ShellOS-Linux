@@ -6,61 +6,72 @@ import subprocess
 from datetime import datetime
 from pygame import mixer
 
-# bring pygame and mixer alive
 pygame.init()
 mixer.init()
 
-WIDTH, HEIGHT = 1017, 660
+WIDTH, HEIGHT = 1509, 890
 TASKBAR_HEIGHT = 30
 DEFAULT_BG = "ShellOS_1.png"
 
-ICON_PATH = os.path.join("SYSTEM", "Graphical_Shell", "icons", "shellos.png")
-ICO_PATH = os.path.join("SYSTEM", "Graphical_Shell", "icons", "shellos.ico")
-SOUND_PATH = os.path.join("SYSTEM", "Graphical_Shell", "sounds", "ShlosStartup.mp3")
 GRAPHICAL_SHELL_DIR = os.path.dirname(os.path.abspath(__file__))
 SHELLOS_DIR = os.path.abspath(os.path.join(GRAPHICAL_SHELL_DIR, "..", ".."))
-BACKGROUND_FOLDER = os.path.join(GRAPHICAL_SHELL_DIR, "backgrounds")
-LAUNCHER_ICON_PATH = os.path.join(GRAPHICAL_SHELL_DIR, "icons", "launcher.png")
-FILEMGR_ICON_PATH = os.path.join(GRAPHICAL_SHELL_DIR, "icons", "filemgr.png")
-TERMINAL_ICON_PATH = os.path.join(GRAPHICAL_SHELL_DIR, "icons", "terminal.png")
+ICON_PATH = os.path.join(SHELLOS_DIR, "SYSTEM", "Graphical_Shell", "icons", "shellos.png")
+ICO_PATH = os.path.join(SHELLOS_DIR, "SYSTEM", "Graphical_Shell", "icons", "shellos.ico")
+SOUND_PATH = os.path.join(SHELLOS_DIR, "SYSTEM", "Graphical_Shell", "sounds", "ShlosStartup.mp3")
+BACKGROUND_FOLDER = os.path.join(SHELLOS_DIR, "SYSTEM", "Graphical_Shell", "backgrounds")
+LAUNCHER_ICON_PATH = os.path.join(SHELLOS_DIR, "SYSTEM", "Graphical_Shell", "icons", "launcher.png")
+FILEMGR_ICON_PATH = os.path.join(SHELLOS_DIR, "SYSTEM", "Graphical_Shell", "icons", "filemgr.png")
+BROWSER_ICON_PATH = os.path.join(SHELLOS_DIR, "SYSTEM", "Graphical_Shell", "icons", "browser.ico")
+TERMINAL_ICON_PATH = os.path.join(SHELLOS_DIR, "SYSTEM", "Graphical_Shell", "icons", "terminal.png")
 
 PROGRESS_BAR_WIDTH = 300
 PROGRESS_BAR_HEIGHT = 10
 PROGRESS_BAR_BORDER = 2
-PROGRESS_SPEED = 0.01  
 
-# Programs
 programs = {
-    "About Shellos": "ShlOSSys/Programs/about.py",
-    "Calculator": "ShlOSSys/Programs/calc.py",
-    "File Manager": "ShlOSSys/Programs/filemgr.py",
-    "Paint": "ShlOSSys/Programs/paint.py",
-    "Terminal": "ShlOSSys/Programs/terminal.py",
-    "Notepad": "ShlOSSys/Programs/notepad.py",
-    "Media Player": "ShlOSSys/Programs/mediaplayer.py",
-    "ShellOS Browser": "ShlOSSys/Programs/shellosbrowser.py",
-    "Tic Tac Toe": "ShlOSSys/Programs/games/ttt.py",
-    "Settings": "ShlOSSys/Programs/settings.py",
+    "About Shellos": "System64/Programs/about.py",
+    "Calculator": "System64/Programs/calc.py",
+    "File Manager": "System64/Programs/filemgr.py",
+    "Terminal": "System64/Programs/terminal.py",
+    "Notepad": "System64/Programs/notepad.py",
+    "ShellOS Browser": "System64/Programs/ShellOS-Browser/browser.py",
+    "Tic Tac Toe": "System64/Programs/games/ttt.py",
+    "Settings": "System64/Programs/settings.py",
 }
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption("ShellOS")
-pygame.display.set_icon(pygame.image.load(ICON_PATH))
+
+try:
+    pygame.display.set_icon(pygame.image.load(ICON_PATH))
+except pygame.error as e:
+    print(f"Warning: Could not load window icon: {e}")
+    pygame.display.set_icon(pygame.Surface((32, 32), pygame.SRCALPHA))
 
 if sys.platform == "win32":
-    import ctypes
-    hwnd = pygame.display.get_wm_info()["window"]
-    ctypes.windll.user32.SendMessageW(hwnd, 0x80, 0, ctypes.windll.shell32.ExtractIconW(0, ICO_PATH, 0))
+    try:
+        import ctypes
+        hwnd = pygame.display.get_wm_info()["window"]
+        ctypes.windll.user32.SendMessageW(hwnd, 0x80, 0, ctypes.windll.shell32.ExtractIconW(0, ICO_PATH, 0))
+    except (ImportError, AttributeError, FileNotFoundError) as e:
+        print(f"Warning: Could not set Windows taskbar icon: {e}")
 
-logo_img = pygame.image.load(ICON_PATH).convert_alpha()
+try:
+    logo_img = pygame.image.load(ICON_PATH).convert_alpha()
+except pygame.error as e:
+    print(f"Error: Could not load logo image for splash screen: {e}")
+    logo_img = pygame.Surface((100, 100), pygame.SRCALPHA)
+
 def get_scaled_logo():
     max_width, max_height = WIDTH * 0.8, HEIGHT * 0.6
+    if logo_img.get_width() == 0 or logo_img.get_height() == 0:
+        return pygame.Surface((1,1), pygame.SRCALPHA)
     ratio = min(max_width / logo_img.get_width(), max_height / logo_img.get_height())
     new_size = (int(logo_img.get_width() * ratio), int(logo_img.get_height() * ratio))
+    new_size = (max(1, new_size[0]), max(1, new_size[1]))
     return pygame.transform.smoothscale(logo_img, new_size)
 
 def draw_progress_bar(screen, x, y, width, height, progress, border=2):
-    """Draw a progress bar with the given progress (0.0 to 1.0)"""
     border_rect = pygame.Rect(x - border, y - border, width + border * 2, height + border * 2)
     pygame.draw.rect(screen, (150, 150, 150), border_rect, border_radius=5)
 
@@ -70,7 +81,7 @@ def draw_progress_bar(screen, x, y, width, height, progress, border=2):
     if progress > 0:
         progress_width = int(width * progress)
         progress_rect = pygame.Rect(x, y, progress_width, height)
-        pygame.draw.rect(screen, (255, 255, 255), progress_rect, border_radius=3)  # White fill
+        pygame.draw.rect(screen, (255, 255, 255), progress_rect, border_radius=3)
 
 scaled_logo = get_scaled_logo()
 
@@ -80,9 +91,9 @@ progress = 0.0
 running = True
 
 while running:
-    current_time = time.time()
-    elapsed = current_time - start_time
-    progress = min(elapsed / 10.0, 1.0)  
+    current_time_splash = time.time()
+    elapsed = current_time_splash - start_time
+    progress = min(elapsed / 10.0, 1.0)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -104,17 +115,15 @@ while running:
     
     pygame.display.flip()
     clock.tick(60)
-    
+
     if progress >= 1.0 and elapsed >= 10:
-        screen.fill((0, 0, 0))
-        screen.blit(scaled_logo, logo_rect)
-        pygame.display.flip()
-        
-        # Play startup sound
-        mixer.music.load(SOUND_PATH)
-        mixer.music.play()
-        while mixer.music.get_busy():
-            pygame.time.delay(100)
+        try:
+            mixer.music.load(SOUND_PATH)
+            mixer.music.play()
+            while mixer.music.get_busy():
+                pygame.time.delay(100)
+        except pygame.error as e:
+            print(f"Warning: Could not play startup sound: {e}")
         running = False
 
 bg_error_shown = False
@@ -136,8 +145,12 @@ if bg_image is None:
     bg_image = pygame.Surface((WIDTH, HEIGHT))
 
 launcher_button_rect = pygame.Rect(5, 2, 26, 26)
-launcher_icon = pygame.image.load(LAUNCHER_ICON_PATH).convert_alpha()
-launcher_icon_scaled = pygame.transform.smoothscale(launcher_icon, (launcher_button_rect.width, launcher_button_rect.height))
+try:
+    launcher_icon = pygame.image.load(LAUNCHER_ICON_PATH).convert_alpha()
+    launcher_icon_scaled = pygame.transform.smoothscale(launcher_icon, (launcher_button_rect.width, launcher_button_rect.height))
+except pygame.error as e:
+    print(f"Warning: Launcher icon not found: {e}")
+    launcher_icon_scaled = pygame.Surface((launcher_button_rect.width, launcher_button_rect.height), pygame.SRCALPHA)
 
 filemgr_button_rect = pygame.Rect(35, 2, 26, 26) 
 try:
@@ -148,7 +161,16 @@ except pygame.error:
     print(f"Warning: File manager icon not found at {FILEMGR_ICON_PATH}")
     filemgr_icon_available = False
 
-terminal_button_rect = pygame.Rect(65, 2, 26, 26) 
+browser_button_rect = pygame.Rect(65, 2, 26, 26)
+try:
+    browser_icon = pygame.image.load(BROWSER_ICON_PATH).convert_alpha()
+    browser_icon_scaled = pygame.transform.smoothscale(browser_icon, (browser_button_rect.width, browser_button_rect.height))
+    browser_icon_available = True
+except pygame.error:
+    print(f"Warning: ShellOS Browser icon not found at {BROWSER_ICON_PATH}")
+    browser_icon_available = False
+
+terminal_button_rect = pygame.Rect(95, 2, 26, 26) 
 try:
     terminal_icon = pygame.image.load(TERMINAL_ICON_PATH).convert_alpha()
     terminal_icon_scaled = pygame.transform.smoothscale(terminal_icon, (terminal_button_rect.width, terminal_button_rect.height))
@@ -157,13 +179,12 @@ except pygame.error:
     print(f"Warning: Terminal icon not found at {TERMINAL_ICON_PATH}")
     terminal_icon_available = False
 
-TASKBAR_COLOR = (15, 6, 27) 
-LAUNCHER_BG_COLOR = (0, 0, 0)
-FILEMGR_BG_COLOR = (0, 0, 0)
-FILEMGR_HOVER_COLOR = (40, 40, 40)
-TERMINAL_BG_COLOR = (0, 0, 0)
-TERMINAL_HOVER_COLOR = (40, 40, 40)
-MENU_BG_COLOR = (70, 20, 110)
+TASKBAR_COLOR_RGB = (15, 6, 27)
+TASKBAR_ALPHA = 200
+
+START_MENU_COLOR_RGB = (10, 4, 18)
+START_MENU_ALPHA = 220
+
 WHITE = (255, 255, 255)
 
 font = pygame.font.SysFont(None, 24)
@@ -171,10 +192,12 @@ clock_font = pygame.font.SysFont(None, 24)
 
 menu_visible = False
 menu_items = list(programs.keys())
+menu_items.sort()
 menu_item_height = 28
 menu_width = 200
 max_visible_items = 10
 scroll_offset = 0
+
 special_menu_open = False
 special_menu_items = ["Shutdown", "About ShellOS", "Settings Panel"]
 special_menu_rects = []
@@ -188,7 +211,10 @@ def toggle_menu():
 def launch_program(path):
     full_path = os.path.join(SHELLOS_DIR, path)
     if os.path.exists(full_path):
-        subprocess.Popen(['python', full_path])
+        try:
+            subprocess.Popen([sys.executable, full_path])
+        except OSError as e:
+            print(f"Error launching program {full_path}: {e}")
     else:
         print(f"Error: Program not found: {full_path}")
 
@@ -196,13 +222,19 @@ def resize_window(new_width, new_height):
     global current_width, current_height, bg_image_scaled, WIDTH, HEIGHT
     current_width, current_height = new_width, new_height
     WIDTH, HEIGHT = new_width, new_height
+    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
     bg_image_scaled = pygame.transform.scale(bg_image, (new_width, new_height))
 
-def draw_transparent_taskbar(surface, rect, color, alpha=200):
-    """Draw a transparent taskbar with the specified alpha value (0-255)"""
+def draw_transparent_taskbar(surface, rect, color, alpha):
     taskbar_surface = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
-    taskbar_surface.fill((*color, alpha))  
+    taskbar_surface.fill((*color, alpha))
     surface.blit(taskbar_surface, rect.topleft)
+
+def draw_rounded_transparent_rect(surface, rect, color_rgb, alpha, radius):
+    s = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+    s.fill((0, 0, 0, 0))
+    pygame.draw.rect(s, (*color_rgb, alpha), (0, 0, rect.width, rect.height), border_radius=radius)
+    surface.blit(s, rect.topleft)
 
 def get_current_time():
     now = datetime.now()
@@ -214,49 +246,53 @@ current_width, current_height = WIDTH, HEIGHT
 bg_image_scaled = pygame.transform.scale(bg_image, (WIDTH, HEIGHT))
 
 while running:
-    current_time = pygame.time.get_ticks()
     screen.blit(bg_image_scaled, (0, 0))
-    
-    # Draw transparent taskbar overlay and make it look pretty
+
     taskbar_rect = pygame.Rect(0, 0, current_width, TASKBAR_HEIGHT)
-    draw_transparent_taskbar(screen, taskbar_rect, TASKBAR_COLOR, 200)
+    draw_transparent_taskbar(screen, taskbar_rect, TASKBAR_COLOR_RGB, TASKBAR_ALPHA)
     
-    pygame.draw.rect(screen, LAUNCHER_BG_COLOR, launcher_button_rect, border_radius=6)
+    pygame.draw.rect(screen, (0, 0, 0), launcher_button_rect, border_radius=6)
     screen.blit(launcher_icon_scaled, launcher_button_rect.topleft)
 
     mouse_x, mouse_y = pygame.mouse.get_pos()
+
     hovering_filemgr = filemgr_button_rect.collidepoint((mouse_x, mouse_y))
-    
-    filemgr_bg_color = FILEMGR_HOVER_COLOR if hovering_filemgr else FILEMGR_BG_COLOR
+    filemgr_bg_color = (40, 40, 40) if hovering_filemgr else (0, 0, 0)
     pygame.draw.rect(screen, filemgr_bg_color, filemgr_button_rect, border_radius=6)
-    
     if filemgr_icon_available:
         screen.blit(filemgr_icon_scaled, filemgr_button_rect.topleft)
     else:
         pygame.draw.rect(screen, (100, 100, 100), 
-                        (filemgr_button_rect.x + 4, filemgr_button_rect.y + 6, 18, 14), 
-                        border_radius=2)
+                         (filemgr_button_rect.x + 4, filemgr_button_rect.y + 6, 18, 14), 
+                         border_radius=2)
         pygame.draw.rect(screen, (80, 80, 80), 
-                        (filemgr_button_rect.x + 6, filemgr_button_rect.y + 4, 6, 4), 
-                        border_radius=1)
+                         (filemgr_button_rect.x + 6, filemgr_button_rect.y + 4, 6, 4), 
+                         border_radius=1)
+
+    hovering_browser = browser_button_rect.collidepoint((mouse_x, mouse_y))
+    browser_bg_color = (40, 40, 40) if hovering_browser else (0, 0, 0)
+    pygame.draw.rect(screen, browser_bg_color, browser_button_rect, border_radius=6)
+    if browser_icon_available:
+        screen.blit(browser_icon_scaled, browser_button_rect.topleft)
+    else:
+        pygame.draw.circle(screen, (0, 150, 255), browser_button_rect.center, 10, 2)
+        pygame.draw.circle(screen, (255, 165, 0), browser_button_rect.center, 4)
 
     hovering_terminal = terminal_button_rect.collidepoint((mouse_x, mouse_y))
-    
-    terminal_bg_color = TERMINAL_HOVER_COLOR if hovering_terminal else TERMINAL_BG_COLOR
+    terminal_bg_color = (40, 40, 40) if hovering_terminal else (0, 0, 0)
     pygame.draw.rect(screen, terminal_bg_color, terminal_button_rect, border_radius=6)
-    
     if terminal_icon_available:
         screen.blit(terminal_icon_scaled, terminal_button_rect.topleft)
     else:
         pygame.draw.rect(screen, (30, 30, 30), 
-                        (terminal_button_rect.x + 2, terminal_button_rect.y + 2, 22, 22), 
-                        border_radius=2)
+                         (terminal_button_rect.x + 2, terminal_button_rect.y + 2, 22, 22), 
+                         border_radius=2)
         pygame.draw.rect(screen, (0, 200, 0), 
-                        (terminal_button_rect.x + 4, terminal_button_rect.y + 4, 18, 2))
+                         (terminal_button_rect.x + 4, terminal_button_rect.y + 4, 18, 2))
         pygame.draw.rect(screen, (0, 200, 0), 
-                        (terminal_button_rect.x + 4, terminal_button_rect.y + 8, 10, 2))
+                         (terminal_button_rect.x + 4, terminal_button_rect.y + 8, 10, 2))
         pygame.draw.rect(screen, (0, 200, 0), 
-                        (terminal_button_rect.x + 4, terminal_button_rect.y + 12, 14, 2))
+                         (terminal_button_rect.x + 4, terminal_button_rect.y + 12, 14, 2))
 
     time_str = get_current_time()
     clock_text = clock_font.render(time_str, True, WHITE)
@@ -269,9 +305,7 @@ while running:
     dots_menu_rect = pygame.Rect(clock_label_x - dots_menu_width - dots_menu_margin_right, 5, dots_menu_width, dots_menu_height)
 
     hovering_dots = dots_menu_rect.collidepoint((mouse_x, mouse_y))
-
     dots_menu_color = (55, 55, 55) if hovering_dots else (45, 45, 45)
-
     pygame.draw.rect(screen, dots_menu_color, dots_menu_rect, border_radius=5)
 
     pygame.draw.circle(screen, WHITE, (dots_menu_rect.centerx, dots_menu_rect.centery - 4), 2)
@@ -283,7 +317,7 @@ while running:
         for i, label in enumerate(special_menu_items):
             rect = pygame.Rect(dots_menu_rect.x, dots_menu_rect.bottom + i * 25, 160, 25)
             special_menu_rects.append((rect, label))
-            pygame.draw.rect(screen, MENU_BG_COLOR, rect, border_radius=6)
+            draw_rounded_transparent_rect(screen, rect, START_MENU_COLOR_RGB, START_MENU_ALPHA, 6)
             text = font.render(label, True, WHITE)
             screen.blit(text, (rect.x + 5, rect.y + 4))
 
@@ -294,41 +328,52 @@ while running:
         for i, item in enumerate(visible_items):
             item_rect = pygame.Rect(5, TASKBAR_HEIGHT + i * menu_item_height, menu_width, menu_item_height)
             menu_rects.append((item_rect, scroll_offset + i))
-            pygame.draw.rect(screen, MENU_BG_COLOR, item_rect)
+            draw_rounded_transparent_rect(screen, item_rect, START_MENU_COLOR_RGB, START_MENU_ALPHA, 0)
             item_text = font.render(item, True, WHITE)
             screen.blit(item_text, (item_rect.x + 5, item_rect.y + 5))
 
         for rect, index in menu_rects:
             if rect.collidepoint((mouse_x, mouse_y)):
                 hovered_index = index
-                pygame.draw.rect(screen, (100, 40, 140), rect, 2)
+                hover_color_rgb = (100, 40, 140)
+                hover_alpha = 100
+                draw_rounded_transparent_rect(screen, rect, hover_color_rgb, hover_alpha, 0)
+                pygame.draw.rect(screen, hover_color_rgb, rect, 2)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.VIDEORESIZE:
             resize_window(event.w, event.h)
-            scaled_logo = get_scaled_logo()
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 if launcher_button_rect.collidepoint(event.pos):
                     toggle_menu()
+                    special_menu_open = False
                 elif filemgr_button_rect.collidepoint(event.pos):
-                    # it might launch the file manager
-                    launch_program("ShlOSSys/Programs/filemgr.py")
+                    launch_program("System64/Programs/filemgr.py")
+                    menu_visible = False
+                    special_menu_open = False
+                elif browser_button_rect.collidepoint(event.pos):
+                    launch_program("System64/Programs/ShellOS-Browser/browser.py")
+                    menu_visible = False
+                    special_menu_open = False
                 elif terminal_button_rect.collidepoint(event.pos):
-                    launch_program("ShlOSSys/Programs/terminal.py")
+                    launch_program("System64/Programs/terminal.py")
+                    menu_visible = False
+                    special_menu_open = False
                 elif dots_menu_rect.collidepoint(event.pos):
                     special_menu_open = not special_menu_open
+                    menu_visible = False
                 elif special_menu_open:
                     for rect, label in special_menu_rects:
                         if rect.collidepoint(event.pos):
                             if label == "Shutdown":
                                 running = False
                             elif label == "About ShellOS":
-                                launch_program("ShlOSSys/Programs/about.py")
+                                launch_program("System64/Programs/about.py")
                             elif label == "Settings Panel":
-                                launch_program("ShlOSSys/Programs/settings.py")
+                                launch_program("System64/Programs/settings.py")
                             special_menu_open = False
                             break
                 elif menu_visible:
@@ -338,7 +383,6 @@ while running:
                             menu_visible = False
                             break
                 else:
-                    # Close any open menus when clicking elsewhere
                     menu_visible = False
                     special_menu_open = False
         elif event.type == pygame.MOUSEWHEEL:
@@ -357,3 +401,4 @@ while running:
     clock.tick(30)
 
 pygame.quit()
+sys.exit()

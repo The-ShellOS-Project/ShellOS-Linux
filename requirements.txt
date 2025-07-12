@@ -1,7 +1,6 @@
 psutil
 opencv-python
 Pillow 
-customtkinter
 pygame
 ffpyplayer
 py-cpuinfo

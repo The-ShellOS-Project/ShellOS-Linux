@@ -41,7 +41,7 @@ def get_password(prompt='Password: '):
                 if ch in ('\r', '\n'):
                     print()
                     break
-                elif ch == '\x7f':  # Backspace
+                elif ch == '\x7f':  
                     if len(password) > 0:
                         password = password[:-1]
                         print('\b \b', end='', flush=True)

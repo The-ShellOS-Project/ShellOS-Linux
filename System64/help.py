@@ -1,0 +1,8 @@
+print("Commands")
+print("Help                  Displays this, Duh.")
+print("Sysfetch              Fetches Device Info.")
+print("About                 Displays Info about ShellOS.")
+print("Echo                  Prints text into the Terminal.")
+print("Ls                    Lists the contents of the current directory")
+print("Shl-Get Install       Installs a Package from either an offical ShellOS Repo or a Custom Link ")
+print("Shl-Get Uninstall     Uninstalls a Package")

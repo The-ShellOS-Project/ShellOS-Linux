@@ -27,12 +27,22 @@ def verify_os():
 def verify_hardware():
     print("Verifying your hardware...")
 
+    # Checks if you have a relevant CPU made anytime in the past decade
+    cpu_arch = platform.machine().lower()
+    if cpu_arch not in ["x86_64", "amd64", "intel64"]:
+        print(f"Error: ShellOS requires a 64-bit CPU (x86_64/AMD64/Intel64). Detected: {cpu_arch}")
+        sys.exit(1)
+
+    # Inform this insane person they have a 32-Bit Python Interpreter on a 64-Bit CPU
+    if sys.maxsize <= 2**32:
+        print("[WARNING]: You are running a 32-bit Python interpreter on a 64-bit CPU. ShellOS may run, but 64-bit Python is recommended.")
+
     current_version = sys.version_info
     version_str = f"{current_version.major}.{current_version.minor}.{current_version.micro}"
     print(f"Python Interpreter Version: {version_str}")
     
     if current_version < (3, 12, 6):
-        print("Error: ShellOS 5 requires Python Interpreter version 3.12.6 or later.")
+        print("Error: ShellOS requires Python Interpreter version 3.12.6 or later.")
         sys.exit(1)
 
     cpu_name = platform.processor()
@@ -40,12 +50,12 @@ def verify_hardware():
     cpu_cores = psutil.cpu_count(logical=False)
 
     ram_total = psutil.virtual_memory().total / (1024 ** 2)  # Convert to MB
-
     storage_info = psutil.disk_usage('/')
     storage_free = storage_info.free / (1024 ** 2)  # Convert to MB
 
     print("\nDetected Hardware:")
     print(f"CPU: {cpu_name}")
+    print(f"CPU Architecture: {cpu_arch}")
     print(f"CPU Frequency: {cpu_freq:.2f} MHz")
     print(f"CPU Cores: {cpu_cores}")
     print(f"Total RAM: {ram_total:.2f} MB")
@@ -71,8 +81,6 @@ def main():
     time.sleep(2)
 
     verify_os()
-
-    # Verify how garbage your pc is
     verify_hardware()
 
     shellos_script = os.path.join(os.getcwd(), 'SYSTEM', 'ShlOSCore.py')
